@@ -1,4 +1,5 @@
 use std::{thread, time};
+use getch_rs::{Getch, Key};
 
 const FIELD_WIDTH: usize = 11 + 2;
 const FIELD_HEIGHT: usize = 20 + 1;
@@ -41,7 +42,7 @@ struct Position {
 fn is_collision(field: &Field, pos: &Position, block: BlockKind) -> bool {
     for y in 0..4 {
         for x in 0..4 {
-            if field[y + pos.y + 1][x + pos.x] & BLOCKS[block as usize][y][x] == 1 {
+            if field[y + pos.y][x + pos.x] & BLOCKS[block as usize][y][x] == 1 {
                 return true;
             }
         }
@@ -75,14 +76,19 @@ fn main() {
     ];
 
     let mut pos = Position { x: 4, y: 0 };
+    let g = Getch::new();
 
     // Clear Display
     println!("\x1b[2J\x1b[H\x1b[?25l");
 
-    for _ in 0..30 {
+    loop {
         let mut field_buf = field;
+        let new_pos = Position {
+            x: pos.x,
+            y: pos.y + 1,
+        };
         if !is_collision(&field, &pos, BlockKind::I) {
-            pos.y += 1;
+            pos = new_pos;
         }
         for y in 0..4 {
             for x in 0..4 {
@@ -107,6 +113,38 @@ fn main() {
         }
 
         thread::sleep(time::Duration::from_millis(1000));
+
+        match g.getch() {
+            Ok(Key::Left) => {
+                let new_pos = Position {
+                    x: pos.x - 1,
+                    y: pos.y,
+                };
+                if !is_collision(&field, &new_pos, BlockKind::I) {
+                    pos = new_pos
+                }
+            }
+            Ok(Key::Down) => {
+                let new_pos = Position {
+                    x: pos.x,
+                    y: pos.y + 1,
+                };
+                if !is_collision(&field, &new_pos, BlockKind::I) {
+                    pos = new_pos
+                }
+            }
+            Ok(Key::Right) => {
+                let new_pos = Position {
+                    x: pos.x + 1,
+                    y: pos.y,
+                };
+                if !is_collision(&field, &new_pos, BlockKind::I) {
+                    pos = new_pos
+                }
+            }
+            Ok(Key::Char('q')) => break,
+            _ => (),
+        }
     }
 
     // カーソルを再表示
